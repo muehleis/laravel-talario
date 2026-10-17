@@ -1,0 +1,23 @@
+{
+    "name": "muehleis/laravel-talario",
+    "description": "Laravel mail transport for the Talario sending API",
+    "type": "library",
+    "license": "MIT",
+    "require": {
+        "php": "^8.2",
+        "illuminate/http": "^12.0 || ^13.0",
+        "illuminate/mail": "^12.0 || ^13.0",
+        "illuminate/support": "^12.0 || ^13.0",
+        "symfony/mailer": "^7.0 || ^8.0",
+        "symfony/mime": "^7.0 || ^8.0"
+    },
+    "require-dev": {
+        "laravel/framework": "^12.0 || ^13.0",
+        "phpunit/phpunit": "^11.5"
+    },
+    "autoload": {"psr-4": {"Talario\\Laravel\\": "src/"}},
+    "autoload-dev": {"psr-4": {"Talario\\Laravel\\Tests\\": "tests/"}},
+    "extra": {"laravel": {"providers": ["Talario\\Laravel\\TalarioServiceProvider"]}},
+    "scripts": {"test": "phpunit"},
+    "config": {"sort-packages": true}
+}
