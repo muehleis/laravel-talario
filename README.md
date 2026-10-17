@@ -9,7 +9,7 @@ Die ï¿½bernahme durch Talario ist keine Bestï¿½tigung der Zustellung beim Empfï¿
 
 ## Voraussetzungen
 
-- PHP ab 8.2, Laravel 11 oder 12; Laravel 13 benï¿½tigt mindestens PHP 8.3.
+- PHP ab 8.2 mit Laravel 12; Laravel 13 benï¿½tigt mindestens PHP 8.3.
 - Ein Talario-API-Key mit Freigabe fï¿½r die verwendete Absenderdomain.
 - Eine sendefï¿½hige Domain und ein mit Talario synchronisierter Mailserver.
 
@@ -145,7 +145,7 @@ composer test
 
 Die Tests verwenden HTTP-Fakes und versenden keine E-Mails. Sie prï¿½fen unter anderem
 Empfï¿½nger und Bcc, Anhï¿½nge, Nachrichten-ID, abgelehnte Funktionen, API- und
-Netzwerkfehler sowie die Laravel-Registrierung. Die CI prï¿½ft Laravel 11/12/13.
+Netzwerkfehler sowie die Laravel-Registrierung. Die CI prï¿½ft Laravel 12/13.
 Ein echter Versand aus einer Kundenanwendung bleibt vor einem Release erforderlich.
 
 ## Verï¿½ffentlichung
