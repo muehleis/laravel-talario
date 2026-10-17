@@ -6,6 +6,10 @@ use Symfony\Component\Mailer\SentMessage;
 use Symfony\Component\Mime\Address;
 use Symfony\Component\Mime\Email;
 use Symfony\Component\Mime\Message;
+use Symfony\Component\Mime\Part\AbstractMultipartPart;
+use Symfony\Component\Mime\Part\AbstractPart;
+use Symfony\Component\Mime\Part\DataPart;
+use Symfony\Component\Mime\Part\TextPart;
 
 /** Maps only features the current structured sending API can preserve. */
 class MessagePayload
@@ -58,20 +62,14 @@ class MessagePayload
         if ($email->getReplyTo()) {
             $payload['reply_to'] = array_map($this->address(...), $email->getReplyTo());
         }
-        foreach (['text' => $email->getTextBody(), 'html' => $email->getHtmlBody()] as $field => $body) {
+        // Symfony resolves cid:filename aliases and assigns Content-IDs during body generation.
+        // Read these prepared body parts rather than the unprocessed getHtmlBody() value.
+        $bodies = $this->bodies($email->getBody());
+        foreach ($bodies as $field => $body) {
             if ($body !== null) {
                 $charset = $field === 'text' ? $email->getTextCharset() : $email->getHtmlCharset();
                 if ($charset !== null && strcasecmp($charset, 'utf-8') !== 0) {
                     $this->unsupported('Non-UTF-8 bodies');
-                }
-                if (is_resource($body)) {
-                    if (stream_get_meta_data($body)['seekable']) {
-                        rewind($body);
-                    }
-                    $body = stream_get_contents($body);
-                    if ($body === false) {
-                        $this->unsupported('Unreadable body streams');
-                    }
                 }
                 $payload[$field] = $body;
             }
@@ -99,18 +97,52 @@ class MessagePayload
             $seen[$lower] = true;
             $payload['headers'][$name] = preg_replace('/\r\n[ \t]+/', ' ', $header->getBodyAsString());
         }
+        $contentIds = [];
         foreach ($email->getAttachments() as $attachment) {
-            if ($attachment->getDisposition() === 'inline' || $attachment->hasContentId()) {
-                $this->unsupported('Inline attachments and embedded images');
-            }
-            $payload['attachments'][] = [
+            $part = [
                 'filename' => $attachment->getFilename() ?? 'attachment',
                 'content' => base64_encode($attachment->getBody()),
                 'content_type' => $attachment->getContentType(),
             ];
+            if ($attachment->getDisposition() === 'inline' || $attachment->hasContentId()) {
+                $contentId = $attachment->getContentId();
+                if (strlen($contentId) > 255 || !preg_match('/\A[A-Za-z0-9._+-]+@[A-Za-z0-9.-]+\z/', $contentId)) {
+                    $this->unsupported('Content-IDs outside the API format');
+                }
+                if (isset($contentIds[$contentId])) {
+                    $this->unsupported('Duplicate Content-IDs');
+                }
+                $contentIds[$contentId] = true;
+                $part['disposition'] = $attachment->getDisposition();
+                $part['content_id'] = $contentId;
+            }
+            $payload['attachments'][] = $part;
         }
 
         return $payload;
+    }
+
+    /** @return array<string, string> */
+    private function bodies(AbstractPart $part): array
+    {
+        if ($part instanceof DataPart) {
+            return [];
+        }
+        if ($part instanceof TextPart) {
+            return match ($part->getMediaSubtype()) {
+                'plain' => ['text' => $part->getBody()],
+                'html' => ['html' => $part->getBody()],
+                default => [],
+            };
+        }
+        $bodies = [];
+        if ($part instanceof AbstractMultipartPart) {
+            foreach ($part->getParts() as $child) {
+                $bodies = array_replace($bodies, $this->bodies($child));
+            }
+        }
+
+        return $bodies;
     }
 
     private function address(Address $address): array

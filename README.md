@@ -92,7 +92,7 @@ use the same transport. Laravel queues continue to work; the transport itself
 executes exactly one API call per dispatch.
 
 Supported features include a ‘From’ sender, ‘To’/‘Cc’/‘Bcc’, ‘Reply-To’, UTF-8 text and HTML,
-standard attachments including file and stream content, as well as the
+standard attachments and inline images including file and stream content, as well as the
 headers: `X-*` except `X-Talario-*`, `List-Unsubscribe`, `List-Unsubscribe-Post`,
 `List-Id`, `In-Reply-To` and `References`. API validation and size limits remain
 applicable; server-side validation errors result in an HTTP 422 response.
@@ -101,11 +101,37 @@ Bcc addresses are transmitted exclusively in the API’s Bcc field; Talario does
 not include them in visible headers. In the case of explicit SMTP envelopes, no
 excluded recipients are added. Additional envelope recipients remain hidden.
 
+### Embedded images
+
+Requires the Talario API update that accepts attachment `disposition` and `content_id`.
+Deploy the API update before updating this package in customer applications.
+Laravel's `embed()` and `embedData()` work through the normal mail rendering flow:
+
+```blade
+<img src="{{ $message->embed(storage_path('app/logo.png')) }}" alt="Logo">
+```
+
+In a mail callback, `embedData()` can also embed bytes directly:
+
+```php
+Mail::html('<p>Image test</p>', function ($message) {
+    $cid = $message->embedData(file_get_contents(storage_path('app/logo.png')), 'logo.png', 'image/png');
+    $message->to('recipient@example.org')->subject('Inline image');
+    $message->html('<h1>Talario</h1><img src="'.$cid.'" alt="Logo">');
+});
+```
+
+The transport uses Symfony's prepared HTML, preserving both generated Content-IDs
+and `cid:filename` aliases. Normal attachments retain attachment disposition.
+Content-IDs must be unique, at most 255 characters, without angle brackets, and
+match `[A-Za-z0-9._+-]+@[A-Za-z0-9.-]+`. Laravel/Symfony-generated IDs use this format.
+Images count toward the existing total attachment count and MIME size limits.
+External images referenced by HTTPS URLs continue to work without embedding.
+
 ### Limitations of API v1
 
 The transport rejects non-renderable features prior to the API call:
 
-- embedded images and inline attachments, such as `embed()` or `embedData()`;
 - multiple ‘From’ senders, custom sender/return-path addresses and differing envelope senders;
 - messages without a ‘To’ recipient, including pure Bcc emails;
 - any raw MIME messages, custom MIME bodies and non-UTF-8 bodies;

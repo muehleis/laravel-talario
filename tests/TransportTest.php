@@ -13,7 +13,6 @@ use PHPUnit\Framework\TestCase;
 use Symfony\Component\Mailer\Envelope;
 use Symfony\Component\Mime\Address;
 use Symfony\Component\Mime\Email;
-use Symfony\Component\Mime\Part\DataPart;
 use Symfony\Component\Mime\Part\TextPart;
 use Talario\Laravel\TalarioServiceProvider;
 use Talario\Laravel\TalarioTransport;
@@ -24,7 +23,7 @@ class TransportTest extends TestCase
     private function email(): Email
     {
         return (new Email)->from(new Address('shop@example.com', 'Example Shop'))
-            ->to('customer@example.org')->subject('Bestellung - danke')->text('Vielen Dank!');
+            ->to('customer@example.org')->subject('Bestellung – danke')->text('Vielen Dank!');
     }
 
     private function accepted(): array
@@ -59,7 +58,7 @@ class TransportTest extends TestCase
             self::assertSame('POST', $request->method());
             self::assertTrue($request->hasHeader('Authorization', 'Bearer test-key'));
             self::assertSame('Example Shop', $data['from']['name']);
-            self::assertSame('Bestellung - danke', $data['subject']);
+            self::assertSame('Bestellung – danke', $data['subject']);
             self::assertSame('Vielen Dank!', $data['text']);
             self::assertSame('<p>Danke!</p>', $data['html']);
             self::assertSame('copy@example.org', $data['cc'][0]['email']);
@@ -94,7 +93,7 @@ class TransportTest extends TestCase
     public static function unsupportedMessages(): array
     {
         return [
-            'inline' => ['inline'], 'sender' => ['sender'], 'return path' => ['return'],
+            'sender' => ['sender'], 'return path' => ['return'],
             'multiple from' => ['from'], 'bcc only' => ['bcc'],
             'reserved header' => ['reserved'], 'unsupported header' => ['importance'],
             'duplicate header' => ['duplicate'], 'charset' => ['charset'], 'custom body' => ['custom'],
@@ -107,7 +106,6 @@ class TransportTest extends TestCase
         $http = $this->http();
         $email = $this->email();
         match ($feature) {
-            'inline' => $email->addPart((new DataPart('image', 'logo.png', 'image/png'))->asInline()),
             'sender' => $email->sender('other@example.com'),
             'return' => $email->returnPath('other@example.com'),
             'from' => $email->addFrom('other@example.com')->sender('shop@example.com'),
