@@ -3,9 +3,9 @@
 Laravel mail transport for the Talario dispatch API. Once installed and configured,
 existing Mailables and mail notifications will use Talario via HTTPS.
 
-**Development status:** initial transport for the structured dispatch contract v1 dated
-17 October 2026. No release has been published yet and there is no Packagist entry as yet.
-Delivery by Talario does not constitute confirmation of delivery to the recipient.
+**Version 1.0.0** is the first stable release of the Talario mail transport for Laravel.
+It supports the Talario sending API v1, including regular attachments and embedded images.
+Acceptance by Talario confirms submission to the mail server, not delivery to the recipient.
 
 ## Prerequisites
 
@@ -13,10 +13,10 @@ Delivery by Talario does not constitute confirmation of delivery to the recipien
 - A Talario API key authorised for the sender domain being used.
 - A domain capable of sending emails and a mail server synchronised with Talario.
 
-## Installation during development
+## Installation
 
-Until the package is available on Packagist, add the GitHub repository to the
-`composer.json` file of the **customer application**:
+If the package is not yet registered on Packagist, add the GitHub repository to the
+`composer.json` file of the **customer application**, preserving any existing repositories:
 
 ```json
 "repositories": [
@@ -24,12 +24,13 @@ Until the package is available on Packagist, add the GitHub repository to the
 ]
 ```
 
-After merging this implementation:
+Install the stable release:
 
 ```bash
-composer require muehleis/laravel-talario:dev-main
+composer require muehleis/laravel-talario:^1.0
 ```
 
+Once the package is registered on Packagist, the repository entry is no longer needed.
 A private repository also requires local GitHub authentication.
 Never write access tokens to the project files or the repository.
 
@@ -44,7 +45,7 @@ In the customer application’s `.env` file:
 ```dotenv
 MAIL_MAILER=talario
 TALARIO_API_KEY=tlr_api_YOUR_KEY
-MAIL_FROM_ADDRESS=noreply@deine-domain.de
+MAIL_FROM_ADDRESS=noreply@example.com
 MAIL_FROM_NAME="My application"
 ```
 
@@ -83,7 +84,7 @@ If you have multiple Talario mailers, you can override `api_key`, `endpoint`, `t
 use Illuminate\Support\Facades\Mail;
 
 Mail::raw('Hello from Talario!', function ($message) {
-    $message->to('empfaenger@example.org')->subject('Talario test');
+    $message->to('recipient@example.org')->subject('Talario test');
 });
 ```
 
@@ -171,18 +172,25 @@ composer test
 
 The tests use HTTP fakes and do not send any emails. Among other things, they check
 recipients and Bcc, attachments, message IDs, rejected functions, API and
-network errors, as well as Laravel registration. The CI tests Laravel 12/13.
-A live send from a customer application is still required prior to release.
+network errors, as well as Laravel registration. The CI tests Laravel 12/13
+with PHP 8.2, 8.3 and 8.5 in the supported combinations. The 1.0.0 release has also
+been verified with live HTML, file attachment, Bcc and embedded-image sends from a
+Laravel application.
 
-## Release
+## Versioning and releases
 
-Once CI and a live integration test have been passed, make the repository publicly
-accessible, create a SemVer tag such as `v0.1.0` and register the repository on
-[Packagist](https://packagist.org). Once GitHub updates have been set up,
-Packagist will automatically apply further version tags. Only then will the following suffice for the customer:
+This package follows Semantic Versioning. The `v1.0.0` Git tag identifies the first
+stable release; Composer infers the package version from Git tags. The
+`composer.json` file intentionally does not contain a hard-coded `version` field.
 
-```bash
-composer require muehleis/laravel-talario
-```
+The documented mailer configuration and public transport/exception interfaces are
+the compatibility contract for version 1. Backward-incompatible changes to that
+contract require a new major version. The package version and Talario API version
+are independent. Current feature limitations are documented above.
+
+See [CHANGELOG.md](CHANGELOG.md) for release notes. Public distribution through
+[Packagist](https://packagist.org) requires a publicly accessible repository and
+separate registration; creating a GitHub release alone does not register a package
+on Packagist.
 
 Licence: MIT, see [LICENSE](LICENSE).
