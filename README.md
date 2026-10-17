@@ -1,22 +1,22 @@
 # Laravel Talario
 
-Laravel-Mail-Transport f�r die Talario-Versand-API. Nach Installation und Konfiguration
-verwenden bestehende Mailables und Mail-Notifications Talario �ber HTTPS.
+Laravel mail transport for the Talario dispatch API. Once installed and configured,
+existing Mailables and mail notifications will use Talario via HTTPS.
 
-**Entwicklungsstand:** erster Transport f�r den strukturierten Versandvertrag v1 vom
-17.10.2026. Noch kein ver�ffentlichtes Release und noch kein Packagist-Eintrag.
-Die �bernahme durch Talario ist keine Best�tigung der Zustellung beim Empf�nger.
+**Development status:** initial transport for the structured dispatch contract v1 dated
+17 October 2026. No release has been published yet and there is no Packagist entry as yet.
+Delivery by Talario does not constitute confirmation of delivery to the recipient.
 
-## Voraussetzungen
+## Prerequisites
 
-- PHP ab 8.2 mit Laravel 12; Laravel 13 ben�tigt mindestens PHP 8.3.
-- Ein Talario-API-Key mit Freigabe f�r die verwendete Absenderdomain.
-- Eine sendef�hige Domain und ein mit Talario synchronisierter Mailserver.
+- PHP 8.2 or later with Laravel 12; Laravel 13 requires at least PHP 8.3.
+- A Talario API key authorised for the sender domain being used.
+- A domain capable of sending emails and a mail server synchronised with Talario.
 
-## Installation w�hrend der Entwicklung
+## Installation during development
 
-Solange das Paket noch nicht auf Packagist steht, das GitHub-Repository in der
-`composer.json` der **Kundenanwendung** erg�nzen:
+Until the package is available on Packagist, add the GitHub repository to the
+`composer.json` file of the **customer application**:
 
 ```json
 "repositories": [
@@ -24,28 +24,28 @@ Solange das Paket noch nicht auf Packagist steht, das GitHub-Repository in der
 ]
 ```
 
-Nach dem Merge dieser Implementierung:
+After merging this implementation:
 
 ```bash
 composer require muehleis/laravel-talario:dev-main
 ```
 
-Ein privates Repository ben�tigt zus�tzlich eine lokale GitHub-Authentifizierung.
-Zugangstokens niemals in die Projektdateien oder das Repository schreiben.
+A private repository also requires local GitHub authentication.
+Never write access tokens to the project files or the repository.
 
-Laravel entdeckt den ServiceProvider automatisch. Er registriert den Transport
-und erg�nzt `mail.mailers.talario`, falls die Anwendung diesen Eintrag noch nicht hat.
-Es ist keine �nderung an `config/mail.php` erforderlich.
+Laravel automatically detects the service provider. It registers the transport
+and adds `mail.mailers.talario` if the application does not already have this entry.
+No changes to `config/mail.php` are required.
 
-## Konfiguration
+## Configuration
 
-In der `.env` der Kundenanwendung:
+In the customer application’s `.env` file:
 
 ```dotenv
 MAIL_MAILER=talario
-TALARIO_API_KEY=tlr_api_DEIN_KEY
+TALARIO_API_KEY=tlr_api_YOUR_KEY
 MAIL_FROM_ADDRESS=noreply@deine-domain.de
-MAIL_FROM_NAME="Meine Anwendung"
+MAIL_FROM_NAME="My application"
 ```
 
 Optional:
@@ -56,86 +56,86 @@ TALARIO_TIMEOUT=60
 TALARIO_CONNECT_TIMEOUT=10
 ```
 
-Der Endpoint ist die API-Basis ohne `/messages`. Nur HTTPS ist erlaubt;
-HTTP-Weiterleitungen werden nicht verfolgt. Der API-Key ist ein Kunden-API-Key,
-kein Agent-Token und kein SMTP-Passwort.
+The endpoint is the API base without `/messages`. Only HTTPS is permitted;
+HTTP redirects are not tracked. The API key is a client API key,
+not an agent token or an SMTP password.
 
-Bei aktivem Konfigurationscache anschlie�end:
+If the configuration cache is active, then:
 
 ```bash
 php artisan config:cache
 ```
 
-Lang laufende Queue-Worker nach Konfigurations�nderungen ebenfalls neu starten.
-Die Konfigurationsdatei kann bei Bedarf ver�ffentlicht werden:
+Also restart long-running queue workers after configuration changes.
+The configuration file can be published if required:
 
 ```bash
 php artisan vendor:publish --tag=talario-config
 ```
 
-Bei mehreren Talario-Mailern lassen sich `api_key`, `endpoint`, `timeout` und
-`connect_timeout` je Mailer in `config/mail.php` �berschreiben. Dort weiterhin
-`env(...)` verwenden und keine Geheimnisse eintragen.
+If you have multiple Talario mailers, you can override `api_key`, `endpoint`, `timeout` and
+`connect_timeout` for each mailer in `config/mail.php`. Continue to use
+`env(...)` there and do not enter any secrets.
 
-## Verwendung
+## Usage
 
 ```php
 use Illuminate\Support\Facades\Mail;
 
-Mail::raw('Hallo aus Talario!', function ($message) {
-    $message->to('empfaenger@example.org')->subject('Talario-Test');
+Mail::raw('Hello from Talario!', function ($message) {
+    $message->to('empfaenger@example.org')->subject('Talario test');
 });
 ```
 
-Bestehende Mailables, Markdown-Mails und Notifications �ber den Mail-Kanal verwenden
-denselben Transport. Laravel-Queues funktionieren weiterhin; der Transport selbst
-f�hrt pro Versand genau einen API-Aufruf aus.
+Existing mailables, Markdown emails and notifications sent via the mail channel
+use the same transport. Laravel queues continue to work; the transport itself
+executes exactly one API call per dispatch.
 
-Unterst�tzt werden ein From-Absender, To/Cc/Bcc, Reply-To, UTF-8-Text und HTML,
-normale Anh�nge inklusive Datei- und Stream-Inhalt sowie die von der API erlaubten
-Header: `X-*` au�er `X-Talario-*`, `List-Unsubscribe`, `List-Unsubscribe-Post`,
-`List-Id`, `In-Reply-To` und `References`. API-Validierung und Gr��enlimits bleiben
-ma�geblich; serverseitige Validierungsfehler ergeben HTTP 422.
+Supported features include a ‘From’ sender, ‘To’/‘Cc’/‘Bcc’, ‘Reply-To’, UTF-8 text and HTML,
+standard attachments including file and stream content, as well as the
+headers: `X-*` except `X-Talario-*`, `List-Unsubscribe`, `List-Unsubscribe-Post`,
+`List-Id`, `In-Reply-To` and `References`. API validation and size limits remain
+applicable; server-side validation errors result in an HTTP 422 response.
 
-Bcc-Adressen werden ausschlie�lich im Bcc-Feld der API �bertragen; Talario nimmt
-sie nicht in sichtbare Header auf. Bei expliziten SMTP-Envelopes werden keine
-ausgeschlossenen Empf�nger hinzugef�gt. Zus�tzliche Envelope-Empf�nger bleiben verborgen.
+Bcc addresses are transmitted exclusively in the API’s Bcc field; Talario does
+not include them in visible headers. In the case of explicit SMTP envelopes, no
+excluded recipients are added. Additional envelope recipients remain hidden.
 
-### Grenzen der API v1
+### Limitations of API v1
 
-Der Transport lehnt nicht darstellbare Funktionen vor dem API-Aufruf ab:
+The transport rejects non-renderable features prior to the API call:
 
-- eingebettete Bilder und Inline-Anh�nge, etwa `embed()` oder `embedData()`;
-- mehrere From-Absender, eigene Sender-/Return-Path-Adressen und abweichende Envelope-Absender;
-- Nachrichten ohne To-Empf�nger, auch reine Bcc-Mails;
-- beliebige Raw-MIME-Nachrichten, benutzerdefinierte MIME-Bodies und Nicht-UTF-8-Bodies;
-- nicht freigegebene oder mehrfach vorkommende eigene Header.
+- embedded images and inline attachments, such as `embed()` or `embedData()`;
+- multiple ‘From’ senders, custom sender/return-path addresses and differing envelope senders;
+- messages without a ‘To’ recipient, including pure Bcc emails;
+- any raw MIME messages, custom MIME bodies and non-UTF-8 bodies;
+- unauthorised or duplicate custom headers.
 
-F�r solche Nachrichten vorerst Talarios SMTP-Zugang mit Laravels `smtp`-Transport
-verwenden. Talario erzeugt die MIME-Nachricht neu und vergibt Datum und Message-ID.
-Eine lokale Message-ID wird nicht an die API �bergeben. Der R�ckgabewert des Versands
-liefert �ber `getMessageId()` die von Talario vergebene Message-ID ohne Winkelklammern.
-Die lokale Originalnachricht beh�lt ihre eigenen Header.
+For such messages, use Talario’s SMTP access with Laravel’s `smtp` transport
+for the time being. Talario regenerates the MIME message and assigns a date and Message-ID.
+A local Message-ID is not passed to the API. The return value of the send operation
+provides the Message-ID assigned by Talario via `getMessageId()`, without angle brackets.
+The original local message retains its own headers.
 
-Ein k�nftig vom Server gemeldeter Modus `sandbox` wird akzeptiert; das Paket kann
-den Zugangsmodus nicht pro Anfrage �ndern. Dies implementiert keine Sandbox auf dem Server.
+A `sandbox` mode reported by the server in future will be accepted; the package cannot
+change the access mode on a per-request basis. This does not implement a sandbox on the server.
 
-## Fehler und Wiederholungen
+## Errors and Retry Mechanisms
 
-`TalarioTransportException` ist eine Symfony-Mailer-Transportexception. Sie enth�lt
-bei API-Antworten `httpStatus`, optional `apiCode` und `retryAfter` (Sekunden).
-HTTP 401/403 weisen auf Zugang oder Berechtigungen hin, 422 auf eine abgelehnte
-Nachricht, 429 auf ein Limit und 503 auf eine tempor�r nicht m�gliche Einlieferung.
-Fehlertexte enthalten keine Rohantworten, API-Keys oder Nachrichteninhalte.
+`TalarioTransportException` is a Symfony Mailer transport exception. It contains
+`httpStatus` for API responses, optionally `apiCode` and `retryAfter` (seconds).
+HTTP 401/403 indicate access or authorisation issues, 422 indicates a rejected
+message, 429 indicates a limit has been reached, and 503 indicates delivery is temporarily unavailable.
+Error messages do not contain raw responses, API keys or message content.
 
-**Keine automatischen HTTP-Wiederholungen:** Die API unterst�tzt noch keinen
-Idempotency-Key. Bei einem Timeout kann die Nachricht bereits angenommen worden
-sein. Auch automatische Laravel-Queue-Wiederholungen oder Failover-Mailer k�nnen
-daher Duplikate erzeugen. In einem solchen Fall zuerst die Talario-Protokolle pr�fen.
-Ein erfolgreicher Aufruf best�tigt nur die Annahme; Zustellung und Bounces werden
-separat durch Talario erfasst.
+**No automatic HTTP retries:** The API does not yet support an
+idempotency key. In the event of a timeout, the message may already have been
+accepted. Automatic Laravel queue retries or failover mailers may therefore
+also generate duplicates. In such cases, check the Talario logs first.
+A successful call only confirms acceptance; delivery and bounces are
+logged separately by Talario.
 
-## Entwicklung
+## Development
 
 ```bash
 composer install
@@ -143,20 +143,20 @@ composer validate --strict
 composer test
 ```
 
-Die Tests verwenden HTTP-Fakes und versenden keine E-Mails. Sie pr�fen unter anderem
-Empf�nger und Bcc, Anh�nge, Nachrichten-ID, abgelehnte Funktionen, API- und
-Netzwerkfehler sowie die Laravel-Registrierung. Die CI pr�ft Laravel 12/13.
-Ein echter Versand aus einer Kundenanwendung bleibt vor einem Release erforderlich.
+The tests use HTTP fakes and do not send any emails. Among other things, they check
+recipients and Bcc, attachments, message IDs, rejected functions, API and
+network errors, as well as Laravel registration. The CI tests Laravel 12/13.
+A live send from a customer application is still required prior to release.
 
-## Ver�ffentlichung
+## Release
 
-Nach bestandener CI und echtem Integrationstest das Repository �ffentlich zug�nglich
-machen, einen SemVer-Tag wie `v0.1.0` erstellen und das Repository auf
-[Packagist](https://packagist.org) registrieren. Nach eingerichteter GitHub-Aktualisierung
-�bernimmt Packagist weitere Versionstags. Erst dann gen�gt beim Kunden:
+Once CI and a live integration test have been passed, make the repository publicly
+accessible, create a SemVer tag such as `v0.1.0` and register the repository on
+[Packagist](https://packagist.org). Once GitHub updates have been set up,
+Packagist will automatically apply further version tags. Only then will the following suffice for the customer:
 
 ```bash
 composer require muehleis/laravel-talario
 ```
 
-Lizenz: MIT, siehe [LICENSE](LICENSE).
+Licence: MIT, see [LICENSE](LICENSE).
